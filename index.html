@@ -381,6 +381,7 @@
 
   function formatCustomerId(num) { return num.toString().padStart(8, '0'); }
 
+  // Ensure admin exists and assign customer IDs to all users
   function loadUsers() {
     let users = localStorage.getItem('tcj_users');
     if (!users) {
@@ -389,13 +390,14 @@
       localStorage.setItem('tcj_users', JSON.stringify(users));
     } else {
       users = JSON.parse(users);
+      // Ensure admin exists
       if (!users.find(u => u.phone === "admin")) {
         users.push({ phone: "admin", password: "tcjAcademy", isAdmin: true, cart: [], customerId: null });
-        localStorage.setItem('tcj_users', JSON.stringify(users));
       }
+      // Assign missing customer IDs to non-admin users sequentially
       let nextId = 1;
       const nonAdminUsers = users.filter(u => !u.isAdmin);
-      nonAdminUsers.forEach((user, idx) => {
+      nonAdminUsers.forEach(user => {
         if (!user.customerId) {
           user.customerId = formatCustomerId(nextId);
           nextId++;
@@ -404,9 +406,10 @@
           if (!isNaN(num) && num >= nextId) nextId = num + 1;
         }
       });
+      // Save any modifications back to localStorage
       localStorage.setItem('tcj_users', JSON.stringify(users));
     }
-    return users;
+    return JSON.parse(localStorage.getItem('tcj_users'));
   }
 
   function saveUsers(users) { localStorage.setItem('tcj_users', JSON.stringify(users)); }
@@ -415,7 +418,12 @@
     const users = loadUsers();
     const nonAdmin = users.filter(u => !u.isAdmin);
     let max = 0;
-    nonAdmin.forEach(u => { if (u.customerId) { const num = parseInt(u.customerId, 10); if (!isNaN(num) && num > max) max = num; } });
+    nonAdmin.forEach(u => {
+      if (u.customerId) {
+        const num = parseInt(u.customerId, 10);
+        if (!isNaN(num) && num > max) max = num;
+      }
+    });
     return formatCustomerId(max + 1);
   }
 
@@ -440,10 +448,17 @@
     if (!currentUser) return;
     const users = loadUsers();
     const idx = users.findIndex(u => u.phone === currentUser.phone);
-    if (idx !== -1) { users[idx].cart = [...cartItems]; saveUsers(users); currentUser.cart = [...cartItems]; }
+    if (idx !== -1) {
+      users[idx].cart = [...cartItems];
+      saveUsers(users);
+      currentUser.cart = [...cartItems];
+    }
   }
 
-  function loadCartForUser(user) { if (user && user.cart) return [...user.cart]; return []; }
+  function loadCartForUser(user) {
+    if (user && user.cart) return [...user.cart];
+    return [];
+  }
 
   function updateNavbarAuth() {
     const area = document.getElementById('accountStatusArea');
@@ -498,7 +513,6 @@
   function loadOrders() {
     const stored = localStorage.getItem('legacy_orders');
     if (stored) { try { orders = JSON.parse(stored); } catch(e){ orders = []; } } else orders = [];
-    // ensure each order has status
     orders.forEach(o => { if (!o.status) o.status = "Pending"; });
     saveOrders();
   }
@@ -519,7 +533,7 @@
     const ordersListDiv = document.getElementById('ordersList');
     if (!ordersListDiv) return;
     if (orders.length === 0) { ordersListDiv.innerHTML = `<p style="text-align:center; padding:20px;">No orders placed yet.</p>`; return; }
-    let html = `<table class="orders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead><tbody>`;
+    let html = `<table class="orders-table"><thead>实践<th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th> </tr></thead><tbody>`;
     orders.forEach(order => {
       html += `<tr>
         <td>${escapeHtml(order.orderId)}</td>
@@ -598,7 +612,6 @@
   // ---------- PRODUCT DETAILS & REVIEWS ----------
   function canReviewProduct(productId) {
     if (!currentUser) return false;
-    // check if user has a delivered order containing this product
     const userOrders = orders.filter(o => o.customerPhone === currentUser.phone && o.status === 'Delivered');
     return userOrders.some(order => order.items.some(item => item.id === productId));
   }
@@ -736,7 +749,7 @@
     btn.addEventListener('click', (e) => { e.stopPropagation(); addToCart(product); });
     return card;
   }
-  function attachAddToCartListeners(container) { /* already handled in card creation */ }
+  function attachAddToCartListeners(container) { /* handled in card creation */ }
   function renderFeatured() { const grid = document.getElementById('featured-grid'); if(grid){ grid.innerHTML=''; products.slice(0,6).forEach(p=>grid.appendChild(createProductCard(p))); } }
   function renderAllProducts(search='') { const grid = document.getElementById('allProductsGrid'); if(grid){ grid.innerHTML=''; const filtered = products.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())); if(filtered.length===0){ grid.innerHTML='<div style="text-align:center;padding:60px;">No products match</div>'; return; } filtered.forEach(p=>grid.appendChild(createProductCard(p))); } }
 
