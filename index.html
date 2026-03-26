@@ -8,7 +8,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
-    /* ========== ALL CSS (same as before, no changes) ========== */
+    /* ========== ALL CSS (identical to previous working version) ========== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background-color: #FEFCF8; color: #2A2418; line-height: 1.5; scroll-behavior: smooth; }
     h1, h2, h3, .logo, .hero-title, .section-title { font-family: 'Playfair Display', serif; font-weight: 500; }
@@ -186,7 +186,8 @@
 
 <script>
   // ---------- CONFIGURATION ----------
-  const API_URL = 'https://script.google.com/macros/s/AKfycbxJcbHXELiUM2VB8iE0xe5BsWBd0VcXNji54K69DjWKCU1BbIhSefEo-R9GpBRjqqIk/exec';
+  // REPLACE THIS WITH YOUR NEW WEB APP URL FROM DEPLOYMENT
+  const API_URL = 'https://script.google.com/macros/s/AKfycbx9fBb_UHoOKejnRfcTbAA8LZlpn8APaNCZFaVGi9rXghs0Urqsj2xmhB86c0prfmmA/exec';
 
   // ---------- PRODUCT DATABASE ----------
   const products = [
@@ -209,16 +210,25 @@
   let reviews = {};
   let users = [];
 
-  // ---------- HELPER: CALL BACKEND API ----------
+  // ---------- IMPROVED BACKEND CALL ----------
   async function callAPI(action, data = null) {
-    let url = `${API_URL}?action=${action}`;
-    if (data) {
-      url += `&data=${encodeURIComponent(JSON.stringify(data))}`;
-    }
     try {
-      const response = await fetch(url, { method: 'POST' });
-      const result = await response.json();
-      return result;
+      if (action === 'getAllData') {
+        // GET request for fetching all data
+        const response = await fetch(`${API_URL}?action=getAllData`);
+        const result = await response.json();
+        return result;
+      } else {
+        // POST request with form data for mutations
+        const formData = new FormData();
+        formData.append('action', action);
+        if (data) {
+          formData.append('data', JSON.stringify(data));
+        }
+        const response = await fetch(API_URL, { method: 'POST', body: formData });
+        const result = await response.json();
+        return result;
+      }
     } catch (err) {
       console.error('API call failed:', err);
       showToast('Connection error. Check internet or try again.');
@@ -406,25 +416,25 @@
       ordersListDiv.innerHTML = `<p style="text-align:center; padding:20px;">No orders placed yet.</p>`;
       return;
     }
-    let html = `<table class="orders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead><tbody>`;
+    let html = `<table class="orders-table"><thead>佛山<th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th> </thead><tbody>`;
     orders.forEach(order => {
-      html += `<tr>
-        <td>${escapeHtml(order.orderId)}</td>
-        <td>${escapeHtml(order.timestamp)}</td>
-        <td>${escapeHtml(order.customer.name)}<br><small>${escapeHtml(order.customer.email)}</small><br>ID: ${order.customerId || 'N/A'}</td>
-        <td>${escapeHtml(order.customer.mobile)}</td>
-        <td>${escapeHtml(order.customer.address)}</td>
-        <td>${order.items.map(i => `${escapeHtml(i.name)} ($${i.price})`).join('<br>')}</td>
-        <td>$${order.total.toFixed(2)}</td>
-        <td>${escapeHtml(order.payment.method)}${order.payment.details ? '<br><small>' + escapeHtml(order.payment.details) + '</small>' : ''}</td>
-        <td><select class="status-select" data-order="${order.orderId}">
+      html += `运转
+         <td>${escapeHtml(order.orderId)}</td>
+         <td>${escapeHtml(order.timestamp)}</td>
+         <td>${escapeHtml(order.customer.name)}<br><small>${escapeHtml(order.customer.email)}</small><br>ID: ${order.customerId || 'N/A'}</td>
+         <td>${escapeHtml(order.customer.mobile)}</td>
+         <td>${escapeHtml(order.customer.address)}</td>
+         <td>${order.items.map(i => `${escapeHtml(i.name)} ($${i.price})`).join('<br>')}</td>
+         <td>$${order.total.toFixed(2)}</td>
+         <td>${escapeHtml(order.payment.method)}${order.payment.details ? '<br><small>' + escapeHtml(order.payment.details) + '</small>' : ''}</td>
+         <td><select class="status-select" data-order="${order.orderId}">
           <option value="Pending" ${order.status === 'Pending' ? 'selected' : ''}>Pending</option>
           <option value="Processing" ${order.status === 'Processing' ? 'selected' : ''}>Processing</option>
           <option value="Shipped" ${order.status === 'Shipped' ? 'selected' : ''}>Shipped</option>
           <option value="Delivered" ${order.status === 'Delivered' ? 'selected' : ''}>Delivered</option>
           <option value="Cancelled" ${order.status === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
         </select></td>
-      </tr>`;
+       </tr>`;
     });
     html += `</tbody></table>`;
     ordersListDiv.innerHTML = html;
