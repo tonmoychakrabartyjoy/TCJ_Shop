@@ -334,8 +334,8 @@
 <!-- ADMIN ORDERS MODAL (enlarged) -->
 <div id="adminModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📦 Orders Management</h3><span class="close-admin-modal">&times;</span></div><div id="ordersContainer"><div id="ordersList"></div><button id="clearAllOrdersBtn" class="clear-orders-btn">Clear All Orders</button></div></div></div>
 
-<!-- ADMIN USERS MODAL -->
-<div id="usersModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>👥 Customer Accounts</h3><span class="close-users-modal">&times;</span></div><div id="usersListContainer"><div id="usersList"></div></div></div></div>
+<!-- ADMIN USERS MODAL (with export/import) -->
+<div id="usersModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>👥 Customer Accounts</h3><span class="close-users-modal">&times;</span></div><div style="display: flex; gap: 12px; margin-bottom: 16px;"><button id="exportDataBtn" class="btn-primary" style="padding: 8px 16px; background: #2A2418;">📤 Export All Data</button><button id="importDataBtn" class="btn-primary" style="padding: 8px 16px; background: #2A2418;">📥 Import Data</button><input type="file" id="importFileInput" accept=".json" style="display: none;"></div><div id="usersListContainer"><div id="usersList"></div></div></div></div>
 
 <!-- PRODUCT DETAILS MODAL -->
 <div id="productModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 id="productModalTitle">Product Details</h3><span class="close-product-modal">&times;</span></div><div id="productModalBody"></div></div></div>
@@ -352,7 +352,7 @@
 <div id="toastMsg" class="toast">Item added to cart</div>
 
 <script>
-  // ---------- PRODUCT DATABASE (extended with descriptions) ----------
+  // ---------- PRODUCT DATABASE ----------
   const products = [
     { id: 1, name: "Heritage Wool Coat", price: 389, img: "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&h=500&fit=crop", alt: "wool coat", description: "Classic wool coat with a modern cut, crafted from premium Italian wool. Features a tailored silhouette, notch lapel, and two front pockets. Perfect for cold weather elegance.", sizes: ["XS","S","M","L","XL"] },
     { id: 2, name: "Silk Midi Dress", price: 279, img: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&h=500&fit=crop", alt: "silk dress", description: "Luxurious silk midi dress with a flattering wrap design. Ideal for day-to-night transitions. Soft and breathable, with a vibrant print.", sizes: ["XS","S","M","L"] },
@@ -366,22 +366,18 @@
     { id: 10, name: "Oversized Cashmere Sweater", price: 279, img: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=500&fit=crop", alt: "cashmere sweater", description: "Cozy oversized cashmere sweater with a relaxed silhouette. Perfect for lounging or layering.", sizes: ["S","M","L","XL"] }
   ];
 
-  // ---------- USER SYSTEM (with customer ID) ----------
+  // ---------- GLOBAL DATA ----------
   let currentUser = null;
   let cartItems = [];
   let orders = [];
-  let reviews = {}; // productId -> array of reviews
+  let reviews = {};
 
-  function loadReviews() {
-    const stored = localStorage.getItem('tcj_reviews');
-    if (stored) reviews = JSON.parse(stored);
-    else reviews = {};
-  }
+  // ---------- DATA PERSISTENCE ----------
+  function loadReviews() { const stored = localStorage.getItem('tcj_reviews'); if (stored) reviews = JSON.parse(stored); else reviews = {}; }
   function saveReviews() { localStorage.setItem('tcj_reviews', JSON.stringify(reviews)); }
 
   function formatCustomerId(num) { return num.toString().padStart(8, '0'); }
 
-  // Ensure admin exists and assign customer IDs to all users
   function loadUsers() {
     let users = localStorage.getItem('tcj_users');
     if (!users) {
@@ -390,11 +386,9 @@
       localStorage.setItem('tcj_users', JSON.stringify(users));
     } else {
       users = JSON.parse(users);
-      // Ensure admin exists
       if (!users.find(u => u.phone === "admin")) {
         users.push({ phone: "admin", password: "tcjAcademy", isAdmin: true, cart: [], customerId: null });
       }
-      // Assign missing customer IDs to non-admin users sequentially
       let nextId = 1;
       const nonAdminUsers = users.filter(u => !u.isAdmin);
       nonAdminUsers.forEach(user => {
@@ -406,7 +400,6 @@
           if (!isNaN(num) && num >= nextId) nextId = num + 1;
         }
       });
-      // Save any modifications back to localStorage
       localStorage.setItem('tcj_users', JSON.stringify(users));
     }
     return JSON.parse(localStorage.getItem('tcj_users'));
@@ -418,15 +411,85 @@
     const users = loadUsers();
     const nonAdmin = users.filter(u => !u.isAdmin);
     let max = 0;
-    nonAdmin.forEach(u => {
-      if (u.customerId) {
-        const num = parseInt(u.customerId, 10);
-        if (!isNaN(num) && num > max) max = num;
-      }
-    });
+    nonAdmin.forEach(u => { if (u.customerId) { const num = parseInt(u.customerId, 10); if (!isNaN(num) && num > max) max = num; } });
     return formatCustomerId(max + 1);
   }
 
+  function loadOrders() {
+    const stored = localStorage.getItem('legacy_orders');
+    if (stored) { try { orders = JSON.parse(stored); } catch(e){ orders = []; } } else orders = [];
+    orders.forEach(o => { if (!o.status) o.status = "Pending"; });
+    saveOrders();
+  }
+  function saveOrders() { localStorage.setItem('legacy_orders', JSON.stringify(orders)); }
+
+  // ---------- EXPORT/IMPORT ----------
+  function exportAllData() {
+    const data = {
+      users: loadUsers(),
+      orders: orders,
+      reviews: reviews,
+      version: 1,
+      exportedAt: new Date().toISOString()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tcj_backup_${new Date().toISOString().slice(0,19)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Data exported successfully!");
+  }
+
+  function importData(file) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const imported = JSON.parse(e.target.result);
+        if (imported.users && imported.orders && imported.reviews !== undefined) {
+          if (confirm("Import will merge data. Existing accounts with same phone will be updated. Orders with same ID will be overwritten. Continue?")) {
+            // Merge users: keep admin, update/add others
+            let existingUsers = loadUsers();
+            const admin = existingUsers.find(u => u.phone === "admin");
+            const newUsers = imported.users.filter(u => u.phone !== "admin");
+            // Merge by phone
+            newUsers.forEach(newUser => {
+              const idx = existingUsers.findIndex(u => u.phone === newUser.phone);
+              if (idx !== -1) existingUsers[idx] = { ...existingUsers[idx], ...newUser };
+              else existingUsers.push(newUser);
+            });
+            // Ensure admin exists
+            if (!existingUsers.find(u => u.phone === "admin")) existingUsers.push(admin);
+            saveUsers(existingUsers);
+            // Merge orders (by orderId)
+            let existingOrders = orders;
+            imported.orders.forEach(newOrder => {
+              const idx = existingOrders.findIndex(o => o.orderId === newOrder.orderId);
+              if (idx !== -1) existingOrders[idx] = newOrder;
+              else existingOrders.unshift(newOrder);
+            });
+            orders = existingOrders;
+            saveOrders();
+            // Merge reviews
+            reviews = { ...reviews, ...imported.reviews };
+            saveReviews();
+            // Refresh UI
+            if (currentUser && currentUser.isAdmin) { renderAllUsers(); renderAdminOrders(); }
+            else if (currentUser) { /* user data refreshed on next action */ }
+            showToast("Data imported successfully! Refresh if needed.");
+          }
+        } else {
+          showToast("Invalid backup file format.");
+        }
+      } catch(err) { showToast("Error parsing file."); }
+    };
+    reader.readAsText(file);
+  }
+
+  // ---------- USER FUNCTIONS ----------
   function registerUser(phone, password) {
     const users = loadUsers();
     if (users.find(u => u.phone === phone)) return { success: false, msg: "Phone number already registered." };
@@ -455,10 +518,7 @@
     }
   }
 
-  function loadCartForUser(user) {
-    if (user && user.cart) return [...user.cart];
-    return [];
-  }
+  function loadCartForUser(user) { return user && user.cart ? [...user.cart] : []; }
 
   function updateNavbarAuth() {
     const area = document.getElementById('accountStatusArea');
@@ -466,8 +526,7 @@
     area.innerHTML = '';
     if (!currentUser) {
       area.innerHTML = `<button class="account-btn" id="openAccountBtn"><i class="fas fa-sign-in-alt"></i> Sign in / Register</button>`;
-      const openBtn = document.getElementById('openAccountBtn');
-      if (openBtn) openBtn.addEventListener('click', () => { document.getElementById('accountModal').style.display = 'flex'; });
+      document.getElementById('openAccountBtn')?.addEventListener('click', () => { document.getElementById('accountModal').style.display = 'flex'; });
     } else {
       const isAdmin = currentUser.isAdmin === true;
       const greeting = `<span class="user-greeting"><i class="fas fa-user"></i> ${currentUser.phone}${currentUser.customerId ? ' (ID: ' + currentUser.customerId + ')' : ''}</span>`;
@@ -509,20 +568,14 @@
     if (user.isAdmin) showToast("Admin: You can view orders and users.");
   }
 
-  // ---------- ORDERS (with status) ----------
-  function loadOrders() {
-    const stored = localStorage.getItem('legacy_orders');
-    if (stored) { try { orders = JSON.parse(stored); } catch(e){ orders = []; } } else orders = [];
-    orders.forEach(o => { if (!o.status) o.status = "Pending"; });
-    saveOrders();
-  }
-  function saveOrders() { localStorage.setItem('legacy_orders', JSON.stringify(orders)); }
+  // ---------- ORDERS ----------
   function addOrder(orderData) {
     const newOrder = { ...orderData, status: "Pending", customerId: currentUser?.customerId, customerPhone: currentUser?.phone };
     orders.unshift(newOrder);
     saveOrders();
     renderAdminOrders();
   }
+
   function updateOrderStatus(orderId, newStatus) {
     const order = orders.find(o => o.orderId === orderId);
     if (order) { order.status = newStatus; saveOrders(); renderAdminOrders(); }
@@ -533,7 +586,7 @@
     const ordersListDiv = document.getElementById('ordersList');
     if (!ordersListDiv) return;
     if (orders.length === 0) { ordersListDiv.innerHTML = `<p style="text-align:center; padding:20px;">No orders placed yet.</p>`; return; }
-    let html = `<table class="orders-table"><thead>实践<th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th> </tr></thead><tbody>`;
+    let html = `<table class="orders-table"><thead>实践<th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th> </thead><tbody>`;
     orders.forEach(order => {
       html += `<tr>
         <td>${escapeHtml(order.orderId)}</td>
@@ -583,7 +636,7 @@
     usersListDiv.innerHTML = html;
   }
 
-  // ---------- MY ORDERS (customer view) ----------
+  // ---------- MY ORDERS ----------
   function openMyOrdersModal() {
     if (!currentUser) { showToast("Please login first"); return; }
     const myOrders = orders.filter(o => o.customerPhone === currentUser.phone);
@@ -633,8 +686,7 @@
 
   function showProductModal(product) {
     const modal = document.getElementById('productModal');
-    const title = document.getElementById('productModalTitle');
-    title.innerText = product.name;
+    document.getElementById('productModalTitle').innerText = product.name;
     const body = document.getElementById('productModalBody');
     const productReviews = reviews[product.id] || [];
     const canReview = canReviewProduct(product.id);
@@ -684,7 +736,7 @@
   }
 
   // ---------- CART & AUTH GUARDS ----------
-  function requireLogin(callback) {
+  function requireLogin() {
     if (!currentUser) {
       showToast("Please login to continue");
       document.getElementById('accountModal').style.display = 'flex';
@@ -721,7 +773,7 @@
     if (!list) return;
     if (cartItems.length === 0) { list.innerHTML = `<li class="empty-cart-msg">Your bag is empty. <i class="far fa-sad-tear"></i></li>`; document.getElementById('cartTotal').innerHTML = `Total: $0.00`; return; }
     let total = 0; let html = '';
-    cartItems.forEach((item, idx) => { total += item.price; html += `<li class="cart-item"><div><strong>${escapeHtml(item.name)}</strong><br><span class="cart-item-price">$${item.price.toFixed(2)}</span></div><button class="remove-item" data-id="${item.id}"><i class="fas fa-trash-alt"></i></button></li>`; });
+    cartItems.forEach((item) => { total += item.price; html += `<li class="cart-item"><div><strong>${escapeHtml(item.name)}</strong><br><span class="cart-item-price">$${item.price.toFixed(2)}</span></div><button class="remove-item" data-id="${item.id}"><i class="fas fa-trash-alt"></i></button></li>`; });
     list.innerHTML = html; document.getElementById('cartTotal').innerHTML = `Total: $${total.toFixed(2)}`;
     document.querySelectorAll('.remove-item').forEach(btn => btn.addEventListener('click', (e) => { const pid = parseInt(btn.getAttribute('data-id')); const idx = cartItems.findIndex(i => i.id === pid); if (idx !== -1) { cartItems.splice(idx,1); updateCartUI(); showToast("Item removed"); } }));
   }
@@ -739,7 +791,7 @@
   function escapeHtml(str){ if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m; }); }
   function showToast(msg){ const toast=document.getElementById('toastMsg'); toast.textContent=msg; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2500); }
 
-  // Product rendering with click
+  // Product rendering
   function createProductCard(product) {
     const card = document.createElement('div'); card.className = 'product-card';
     card.innerHTML = `<img class="product-img" src="${product.img}" alt="${product.alt}"><div class="product-info"><div class="product-title">${escapeHtml(product.name)}</div><div class="product-price">$${product.price.toFixed(2)}</div><button class="add-to-cart" data-id="${product.id}">Add to Cart</button></div>`;
@@ -749,7 +801,6 @@
     btn.addEventListener('click', (e) => { e.stopPropagation(); addToCart(product); });
     return card;
   }
-  function attachAddToCartListeners(container) { /* handled in card creation */ }
   function renderFeatured() { const grid = document.getElementById('featured-grid'); if(grid){ grid.innerHTML=''; products.slice(0,6).forEach(p=>grid.appendChild(createProductCard(p))); } }
   function renderAllProducts(search='') { const grid = document.getElementById('allProductsGrid'); if(grid){ grid.innerHTML=''; const filtered = products.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())); if(filtered.length===0){ grid.innerHTML='<div style="text-align:center;padding:60px;">No products match</div>'; return; } filtered.forEach(p=>grid.appendChild(createProductCard(p))); } }
 
@@ -784,6 +835,11 @@
     document.getElementById('newsletterForm').addEventListener('submit',(e)=>{ e.preventDefault(); const em=document.getElementById('newsEmail'); if(em.value.trim()){ showToast("Thanks for joining!"); em.value=''; } else showToast("Enter email"); });
     const hamburger=document.getElementById('hamburgerBtn'), navLinks=document.getElementById('navLinks'); if(hamburger) hamburger.addEventListener('click',()=>navLinks.classList.toggle('active'));
     document.getElementById('confirmOkBtn').addEventListener('click',()=>{ document.getElementById('orderConfirmModal').style.display='none'; });
+
+    // Export/Import buttons
+    document.getElementById('exportDataBtn')?.addEventListener('click', exportAllData);
+    document.getElementById('importDataBtn')?.addEventListener('click', () => { document.getElementById('importFileInput').click(); });
+    document.getElementById('importFileInput')?.addEventListener('change', (e) => { if(e.target.files.length) importData(e.target.files[0]); e.target.value = ''; });
   });
 </script>
 </body>
