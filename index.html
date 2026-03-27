@@ -265,19 +265,27 @@
   }
 
   function logout() {
-    if (window.ordersUnsubscribe) window.ordersUnsubscribe();
-    if (window.usersUnsubscribe) window.usersUnsubscribe();
-    if (window.myOrdersUnsubscribe) window.myOrdersUnsubscribe();
-    currentUser = null;
-    cartItems = [];
-    updateCartUI();
-    updateNavbarAuth();
-    showToast("Logged out.");
-    ["accountModal","adminModal","usersModal","myOrdersModal"].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = "none";
-    });
-  }
+  // Unsubscribe from real-time listeners to prevent errors
+  if (window.ordersUnsubscribe) window.ordersUnsubscribe();
+  if (window.usersUnsubscribe) window.usersUnsubscribe();
+  if (window.myOrdersUnsubscribe) window.myOrdersUnsubscribe();
+
+  // Sign out from Firebase Authentication
+  auth.signOut().catch(console.error);  // <-- KEY FIX
+
+  // Clear local state and UI
+  currentUser = null;
+  cartItems = [];
+  updateCartUI();
+  updateNavbarAuth();
+  showToast("Logged out.");
+
+  // Close any open modals
+  ["accountModal","adminModal","usersModal","myOrdersModal"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
+  });
+}
 
   function updateNavbarAuth() {
     const area = document.getElementById("accountStatusArea");
