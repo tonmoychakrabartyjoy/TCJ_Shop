@@ -515,28 +515,45 @@
 
   // ==================== MY ORDERS (real-time) ====================
   function openMyOrdersModal() {
-    if (!currentUser) { showToast("Please login first"); return; }
-    const container = document.getElementById("myOrdersList");
-    if (window.myOrdersUnsubscribe) window.myOrdersUnsubscribe();
+  if (!currentUser) {
+    showToast("Please login first");
+    return;
+  }
 
-    window.myOrdersUnsubscribe = db.collection('orders')
-      .where('userId', '==', currentUser.uid)
-      .orderBy('createdAt', 'desc')
-      .onSnapshot(snapshot => {
+  const container = document.getElementById("myOrdersList");
+  if (!container) {
+    console.error("myOrdersList element not found");
+    return;
+  }
+
+  // Unsubscribe from previous listener
+  if (window.myOrdersUnsubscribe) {
+    window.myOrdersUnsubscribe();
+    window.myOrdersUnsubscribe = null;
+  }
+
+  // Set up real-time listener with error handling
+  window.myOrdersUnsubscribe = db.collection('orders')
+    .where('userId', '==', currentUser.uid)
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(
+      snapshot => {
         const orders = [];
         snapshot.forEach(doc => {
           const data = doc.data();
           orders.push({ id: doc.id, ...data });
         });
-        if (!orders.length) {
+        if (orders.length === 0) {
           container.innerHTML = `<p style="text-align:center;">You have no orders yet.</p>`;
         } else {
-          let html = `<table class="myorders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody>`;
+          let html = `<table class="myorders-table"><thead>
+            <tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr>
+            </thead><tbody>`;
           orders.forEach(order => {
             html += `<tr>
               <td>${escapeHtml(order.orderId)}</td>
               <td>${escapeHtml(order.timestamp)}</td>
-              <td>${order.items.map(i=>escapeHtml(i.name)).join(', ')}</td>
+              <td>${order.items.map(i => escapeHtml(i.name)).join(', ')}</td>
               <td>$${order.total.toFixed(2)}</td>
               <td>${order.status}</td>
             </tr>`;
@@ -544,9 +561,17 @@
           html += `</tbody></table>`;
           container.innerHTML = html;
         }
-      });
-    document.getElementById("myOrdersModal").style.display = "flex";
-  }
+      },
+      error => {
+        console.error("Error fetching orders:", error);
+        showToast("Could not load your orders. Check console for details.");
+        container.innerHTML = `<p class="error">Failed to load orders. Are you logged in?</p>`;
+      }
+    );
+
+  // Show the modal
+  document.getElementById("myOrdersModal").style.display = "flex";
+}
 
   // ==================== PRODUCT RENDERING ====================
   function createProductCard(product) {
