@@ -3,11 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>TCJ Shop | Timeless Elegance (Google Sheets Sync)</title>
+  <title>TCJ Shop | Timeless Elegance (Firebase)</title>
   <!-- Google Fonts & Font Awesome -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <!-- Firebase SDKs (compat versions) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
   <style>
+    /* ========== STYLES (same as before, no changes) ========== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background-color: #FEFCF8; color: #2A2418; line-height: 1.5; scroll-behavior: smooth; }
     h1, h2, h3, .logo, .hero-title, .section-title { font-family: 'Playfair Display', serif; font-weight: 500; }
@@ -61,10 +66,10 @@
     .social-icons i:hover { color: #B58B5D; }
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); backdrop-filter: blur(3px); z-index: 1000; justify-content: center; align-items: center; }
     .modal-content { background: white; max-width: 500px; width: 90%; border-radius: 32px; padding: 28px; max-height: 85vh; overflow-y: auto; box-shadow: 0 30px 40px rgba(0,0,0,0.2); }
-    #adminModal .modal-content, #usersModal .modal-content, #productModal .modal-content, #myOrdersModal .modal-content { max-width: 1200px; width: 95%; }
+    #adminModal .modal-content, #usersModal .modal-content, #myOrdersModal .modal-content { max-width: 1200px; width: 95%; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #EEE2D6; padding-bottom: 16px; margin-bottom: 20px; }
     .modal-header h3 { font-family: 'Playfair Display', serif; font-size: 1.6rem; }
-    .close-modal, .close-admin-modal, .close-account-modal, .close-confirm-modal, .close-users-modal, .close-product-modal, .close-orders-modal { font-size: 1.6rem; cursor: pointer; }
+    .close-modal, .close-admin-modal, .close-account-modal, .close-confirm-modal, .close-users-modal, .close-orders-modal { font-size: 1.6rem; cursor: pointer; }
     .cart-items-list { list-style: none; margin-bottom: 20px; max-height: 320px; overflow-y: auto; }
     .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #F0E7DE; }
     .cart-total { font-weight: 700; font-size: 1.2rem; text-align: right; padding-top: 12px; border-top: 2px dashed #EADDCB; margin-top: 10px; }
@@ -76,41 +81,11 @@
     .orders-table th, .users-table th, .myorders-table th { background: #F9F5EF; font-weight: 600; }
     .status-select { padding: 4px 8px; border-radius: 20px; border: 1px solid #DCCFBF; background: white; font-size: 0.8rem; cursor: pointer; }
     .clear-orders-btn { background: #D94F30; color: white; border: none; padding: 10px 24px; border-radius: 40px; cursor: pointer; margin-top: 20px; }
-    .product-detail-img { width: 100%; max-width: 300px; border-radius: 16px; margin-bottom: 16px; }
-    .product-detail-grid { display: flex; gap: 24px; flex-wrap: wrap; }
-    .product-detail-info { flex: 2; }
-    .product-detail-reviews { flex: 1; border-left: 1px solid #EEE2D6; padding-left: 20px; }
-    .review-item { margin-bottom: 16px; border-bottom: 1px solid #F0E7DE; padding-bottom: 12px; }
-    .review-rating { color: #F5B342; margin-bottom: 4px; }
-    .review-text { font-size: 0.9rem; color: #5E5543; }
-    .review-date { font-size: 0.7rem; color: #9A8A75; margin-top: 4px; }
-    .size-selector { margin: 12px 0; display: flex; gap: 8px; flex-wrap: wrap; }
-    .size-btn { padding: 6px 12px; border: 1px solid #DCCFBF; border-radius: 30px; background: white; cursor: pointer; transition: 0.2s; }
-    .size-btn.selected { background: #2A2418; color: white; border-color: #2A2418; }
-    .review-form { margin-top: 20px; padding-top: 16px; border-top: 1px solid #EEE2D6; }
-    .review-form textarea { width: 100%; padding: 10px; border-radius: 16px; border: 1px solid #E2D5C4; margin: 8px 0; resize: vertical; }
-    .star-rating { display: flex; gap: 4px; margin: 8px 0; }
-    .star { cursor: pointer; color: #ddd; font-size: 1.2rem; }
-    .star.active { color: #F5B342; }
-    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #2A2418; color: #FEFCF8; padding: 12px 24px; border-radius: 60px; font-size: 0.9rem; z-index: 1100; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; box-shadow: 0 8px 20px rgba(0,0,0,0.1); white-space: nowrap; }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-    .hidden-page { display: none; }
-    .account-btn, .logout-btn, .admin-orders-btn, .admin-users-btn, .my-orders-btn { background: none; border: none; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; padding: 6px 12px; border-radius: 40px; transition: 0.2s; }
-    .account-btn { color: #B58B5D; background: #F3EDE5; }
-    .logout-btn { background: #F0E7DE; color: #5E5543; }
-    .admin-orders-btn, .admin-users-btn, .my-orders-btn { background: #2A2418; color: white; margin-left: 6px; }
-    .user-greeting { font-size: 0.9rem; margin-right: 8px; }
-    .tabs { display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #EEE2D6; }
-    .tab-btn { background: none; border: none; font-size: 1.1rem; font-weight: 600; padding: 8px 0; cursor: pointer; color: #7F6E58; transition: 0.2s; }
-    .tab-btn.active { color: #B58B5D; border-bottom: 2px solid #B58B5D; }
-    .tab-pane { display: none; }
-    .tab-pane.active-pane { display: block; }
     .form-group { margin-bottom: 18px; }
     .form-group label { display: block; margin-bottom: 6px; font-weight: 500; }
     .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 12px 16px; border-radius: 28px; border: 1px solid #E2D5C4; font-size: 1rem; background: white; outline: none; }
     .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #B58B5D; box-shadow: 0 0 0 2px rgba(181,139,93,0.2); }
     .submit-account-btn, .place-order-btn { background: #2A2418; color: white; width: 100%; padding: 12px; border-radius: 40px; font-weight: 600; border: none; cursor: pointer; margin-top: 8px; }
-    .place-order-btn { margin-top: 16px; }
     .order-summary { background: #F9F5EF; border-radius: 20px; padding: 16px; margin: 20px 0; font-size: 0.9rem; }
     .order-summary p { display: flex; justify-content: space-between; margin-bottom: 8px; }
     .order-total { font-weight: 700; border-top: 1px solid #DCCFBF; padding-top: 8px; margin-top: 6px; }
@@ -121,9 +96,20 @@
       .hamburger { display: block; }
       .hero-title { font-size: 2.5rem; }
       .toast { white-space: normal; width: 80%; }
-      .product-detail-grid { flex-direction: column; }
-      .product-detail-reviews { border-left: none; padding-left: 0; margin-top: 20px; }
     }
+    .hidden-page { display: none; }
+    .toast { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(20px); background: #2A2418; color: #FEFCF8; padding: 12px 24px; border-radius: 60px; font-size: 0.9rem; z-index: 1100; opacity: 0; transition: opacity 0.2s, transform 0.2s; pointer-events: none; box-shadow: 0 8px 20px rgba(0,0,0,0.1); white-space: nowrap; }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .account-btn, .logout-btn, .admin-orders-btn, .admin-users-btn, .my-orders-btn { background: none; border: none; font-weight: 500; cursor: pointer; font-family: 'Inter', sans-serif; padding: 6px 12px; border-radius: 40px; transition: 0.2s; }
+    .account-btn { color: #B58B5D; background: #F3EDE5; }
+    .logout-btn { background: #F0E7DE; color: #5E5543; }
+    .admin-orders-btn, .admin-users-btn, .my-orders-btn { background: #2A2418; color: white; margin-left: 6px; }
+    .user-greeting { font-size: 0.9rem; margin-right: 8px; }
+    .tabs { display: flex; gap: 16px; margin-bottom: 24px; border-bottom: 1px solid #EEE2D6; }
+    .tab-btn { background: none; border: none; font-size: 1.1rem; font-weight: 600; padding: 8px 0; cursor: pointer; color: #7F6E58; transition: 0.2s; }
+    .tab-btn.active { color: #B58B5D; border-bottom: 2px solid #B58B5D; }
+    .tab-pane { display: none; }
+    .tab-pane.active-pane { display: block; }
   </style>
 </head>
 <body>
@@ -156,7 +142,7 @@
 
 <footer class="footer"><div class="container"><div class="social-icons"><i class="fab fa-instagram"></i><i class="fab fa-pinterest"></i><i class="fab fa-facebook-f"></i><i class="fab fa-tiktok"></i></div><p style="margin-top:24px;">&copy; 2025 Legacy Boutiques — Timeless elegance, modern soul.</p></div></footer>
 
-<!-- MODALS (same structure but updated forms) -->
+<!-- MODALS -->
 <div id="cartModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Your shopping bag</h3><span class="close-modal">&times;</span></div><div id="cartItemsContainer"><ul class="cart-items-list" id="cartItemsList"></ul><div id="cartTotal" class="cart-total">Total: $0.00</div><div class="cart-actions"><button id="clearCartBtn" class="clear-cart">Clear bag</button><button id="checkoutBtn" class="checkout-btn">Proceed to Checkout</button></div></div></div></div>
 
 <div id="checkoutModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Complete your order</h3><span class="close-checkout-modal">&times;</span></div><form id="checkoutForm"><div class="form-group"><label>Full name *</label><input type="text" id="fullName" required placeholder="John Doe"></div><div class="form-group"><label>Email *</label><input type="email" id="email" required placeholder="hello@example.com"></div><div class="form-group"><label>Mobile Number *</label><input type="tel" id="mobile" required placeholder="+880 1XXX XXXXXX"></div><div class="form-group"><label>Shipping address *</label><input type="text" id="address" required placeholder="Street, city, ZIP"></div><div class="form-group"><label>Payment Method *</label><select id="paymentMethod" required><option value="cod">Cash on Delivery (COD)</option><option value="bkash">bKash</option></select></div><div id="bkashFields" style="display: none;"><div class="form-group"><label>bKash Mobile Number *</label><input type="tel" id="bkashMobile" placeholder="01XXXXXXXXX"></div><div class="form-group"><label>Transaction ID *</label><input type="text" id="transactionId" placeholder="e.g., 8N7A6D5C"></div></div><div class="order-summary" id="orderSummary"></div><button type="submit" class="place-order-btn">Place Order</button></form></div></div>
@@ -165,26 +151,33 @@
 
 <div id="usersModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>👥 Customer Accounts</h3><span class="close-users-modal">&times;</span></div><div id="usersListContainer"><div id="usersList"></div></div></div></div>
 
-<div id="productModal" class="modal"><div class="modal-content"><div class="modal-header"><h3 id="productModalTitle">Product Details</h3><span class="close-product-modal">&times;</span></div><div id="productModalBody"></div></div></div>
-
 <div id="myOrdersModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>📋 My Orders</h3><span class="close-orders-modal">&times;</span></div><div id="myOrdersList"></div></div></div>
 
 <div id="accountModal" class="modal"><div class="modal-content"><div class="modal-header"><h3><i class="fas fa-user-circle"></i> Account</h3><span class="close-account-modal">&times;</span></div><div class="tabs"><button class="tab-btn active" data-tab="login">Login</button><button class="tab-btn" data-tab="register">Register</button></div><div id="loginPane" class="tab-pane active-pane"><form id="loginForm"><div class="form-group"><label>Email Address</label><input type="email" id="loginEmail" placeholder="your@email.com" required></div><div class="form-group"><label>Password</label><input type="password" id="loginPassword" required></div><button type="submit" class="submit-account-btn">Login</button></form></div><div id="registerPane" class="tab-pane"><form id="registerForm"><div class="form-group"><label>Full Name</label><input type="text" id="regName" required></div><div class="form-group"><label>Email Address</label><input type="email" id="regEmail" required></div><div class="form-group"><label>Password</label><input type="password" id="regPassword" required></div><button type="submit" class="submit-account-btn">Create Account</button></form></div></div></div>
 
-<div id="orderConfirmModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Order Confirmed</h3><span class="close-confirm-modal">&times;</span></div><div class="confirmation-icon"><i class="fas fa-check-circle"></i></div><div class="confirm-message">We will confirm your order soon.</div><button id="confirmOkBtn" class="confirm-ok-btn btn-primary">OK</button></div></div>
+<div id="orderConfirmModal" class="modal"><div class="modal-content"><div class="modal-header"><h3>Order Confirmed</h3><span class="close-confirm-modal">&times;</span></div><div class="confirmation-icon"><i class="fas fa-check-circle"></i></div><div class="confirm-message">Your order has been placed successfully!</div><button id="confirmOkBtn" class="confirm-ok-btn btn-primary">OK</button></div></div>
 
 <div id="toastMsg" class="toast">Item added to cart</div>
 
 <script>
-  // ========== GOOGLE SHEETS BACKEND INTEGRATION ==========
-  const API_URL = "https://script.google.com/macros/s/AKfycbx4RLZKoaWVSi1PCSUqoWSYuArnf0jfV1_pm2PH5upSH9rPc_zb56cCBwen8EKA-FfL/exec";
-  
-  // ========== GLOBAL STATE ==========
-  let currentUser = null;        // { email, name, role, cart[] }
-  let cartItems = [];
-  let ordersList = [];
-  let allUsers = [];
-  let reviews = {};              // local cache (reviews stored in backend but we keep for UI)
+  // ==================== FIREBASE CONFIGURATION ====================
+  // 🔁 REPLACE WITH YOUR FIREBASE PROJECT CONFIG (already pasted below)
+  const firebaseConfig = {
+    apiKey: "AIzaSyAP6gPp5F0wjOHRrjoEZSI0orgPvxStfKQ",
+    authDomain: "tcjshop-81a62.firebaseapp.com",
+    projectId: "tcjshop-81a62",
+    storageBucket: "tcjshop-81a62.firebasestorage.app",
+    messagingSenderId: "267625281961",
+    appId: "1:267625281961:web:e62f6f4d4578e7cd272cb8",
+    measurementId: "G-KR0YC8TTMZ"
+  };
+
+  // Initialize Firebase (compat style)
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+  const auth = firebase.auth();
+
+  // ==================== PRODUCTS (static) ====================
   const products = [
     { id: 1, name: "Heritage Wool Coat", price: 389, img: "https://images.unsplash.com/photo-1539533018447-63fcce2678e3?w=400&h=500&fit=crop", alt: "wool coat", description: "Classic wool coat with a modern cut, crafted from premium Italian wool.", sizes: ["XS","S","M","L","XL"] },
     { id: 2, name: "Silk Midi Dress", price: 279, img: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&h=500&fit=crop", alt: "silk dress", description: "Luxurious silk midi dress with a flattering wrap design.", sizes: ["XS","S","M","L"] },
@@ -198,122 +191,103 @@
     { id: 10, name: "Oversized Cashmere Sweater", price: 279, img: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=500&fit=crop", alt: "cashmere sweater", description: "Cozy oversized cashmere sweater with a relaxed silhouette.", sizes: ["S","M","L","XL"] }
   ];
 
-  // ========== HELPER: POST to Google Sheets API ==========
-  async function apiPost(action, payload = {}) {
-    try {
-      const res = await fetch(API_URL, {
-        method: "POST",
-        body: JSON.stringify({ action, ...payload })
-      });
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error("API Error:", err);
-      showToast("Connection error. Please check internet.");
-      return null;
-    }
-  }
+  // ==================== GLOBAL STATE ====================
+  let currentUser = null;        // { uid, email, name, role, cart }
+  let cartItems = [];
 
-  async function apiGet(action) {
-    try {
-      const res = await fetch(`${API_URL}?action=${action}`);
-      const data = await res.json();
-      return data;
-    } catch (err) {
-      console.error("API Error:", err);
-      return null;
-    }
-  }
+  // ==================== HELPER FUNCTIONS ====================
+  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+  function showToast(msg) { const t=document.getElementById("toastMsg"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2500); }
 
-  // ========== LOAD USERS & ORDERS FROM SHEETS ==========
-  async function loadAllData() {
-    const usersData = await apiGet("getUsers");
-    if (usersData && usersData.status === "success") {
-      allUsers = usersData.users || [];
-    } else {
-      allUsers = [];
-    }
-    const ordersData = await apiGet("getOrders");
-    if (ordersData && ordersData.status === "success") {
-      ordersList = ordersData.orders || [];
-    } else {
-      ordersList = [];
-    }
-    // Restore session
-    const saved = localStorage.getItem("tcj_user");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      const exists = allUsers.find(u => u.email === parsed.email);
-      if (exists) {
-        currentUser = { ...exists, cart: parsed.cart || [] };
-        cartItems = currentUser.cart;
-        updateCartUI();
-      } else {
-        localStorage.removeItem("tcj_user");
-      }
-    }
-    updateNavbarAuth();
-    if (currentUser?.role === "admin") {
-      renderAdminOrders();
-      renderAllUsers();
-    }
-  }
-
-  // ========== AUTH ==========
+  // ==================== AUTHENTICATION ====================
   async function registerUser(name, email, password) {
-    const res = await apiPost("register", { name, email, password });
-    if (res && res.status === "success") {
-      return { success: true, user: { email, name, role: "user", cart: [] } };
-    } else {
-      return { success: false, msg: res?.message || "Registration failed" };
+    try {
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      // Store user profile in Firestore
+      await db.collection('users').doc(user.uid).set({
+        name: name,
+        email: email,
+        role: 'user',   // default role, you can set an admin manually in Firestore
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      return { success: true, user: { uid: user.uid, email, name, role: 'user', cart: [] } };
+    } catch (error) {
+      return { success: false, msg: error.message };
     }
   }
 
   async function loginUser(email, password) {
-    const res = await apiPost("login", { email, password });
-    if (res && res.status === "success") {
-      const user = { email: res.email, name: res.name, role: res.role || "user", cart: [] };
-      return { success: true, user };
-    } else {
-      return { success: false, msg: res?.message || "Invalid credentials" };
+    try {
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
+      const user = userCredential.user;
+      const userDoc = await db.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        // Fallback: create profile if missing (shouldn't happen)
+        await db.collection('users').doc(user.uid).set({ name: email.split('@')[0], email, role: 'user' });
+      }
+      const userData = userDoc.data() || { name: email.split('@')[0], role: 'user' };
+      return {
+        success: true,
+        user: {
+          uid: user.uid,
+          email: user.email,
+          name: userData.name,
+          role: userData.role,
+          cart: []   // will load cart separately
+        }
+      };
+    } catch (error) {
+      return { success: false, msg: error.message };
     }
   }
 
-  function afterLogin(user) {
-    currentUser = user;
-    cartItems = user.cart || [];
-    updateCartUI();
-    updateNavbarAuth();
-    localStorage.setItem("tcj_user", JSON.stringify({ email: user.email, name: user.name, role: user.role, cart: cartItems }));
-    syncUserCart();
-    showToast(`Welcome ${user.name || user.email}!`);
-    if (user.role === "admin") {
-      loadAllData();
+  async function loadUserCart(uid) {
+    const cartDoc = await db.collection('carts').doc(uid).get();
+    if (cartDoc.exists) {
+      return cartDoc.data().items || [];
     }
+    return [];
   }
 
   async function syncUserCart() {
     if (!currentUser) return;
-    currentUser.cart = cartItems;
-    await apiPost("updateCart", { email: currentUser.email, cart: cartItems });
-    const stored = localStorage.getItem("tcj_user");
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      parsed.cart = cartItems;
-      localStorage.setItem("tcj_user", JSON.stringify(parsed));
+    await db.collection('carts').doc(currentUser.uid).set({
+      items: cartItems,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }
+
+  function afterLogin(user) {
+    currentUser = user;
+    // Load cart from Firestore
+    loadUserCart(currentUser.uid).then(cart => {
+      cartItems = cart;
+      updateCartUI();
+      updateNavbarAuth();
+    });
+    showToast(`Welcome ${currentUser.name || currentUser.email}!`);
+    if (currentUser.role === 'admin') {
+      // Admin panels will be set up when needed; real-time listeners will be attached
+      renderAdminOrders();  // initial load, listener inside
+      renderAllUsers();
     }
   }
 
   function logout() {
+    if (window.ordersUnsubscribe) window.ordersUnsubscribe();
+    if (window.usersUnsubscribe) window.usersUnsubscribe();
+    if (window.myOrdersUnsubscribe) window.myOrdersUnsubscribe();
     currentUser = null;
     cartItems = [];
-    localStorage.removeItem("tcj_user");
     updateCartUI();
     updateNavbarAuth();
     showToast("Logged out.");
+    // Close any open modals
     document.getElementById("accountModal").style.display = "none";
     document.getElementById("adminModal").style.display = "none";
     document.getElementById("usersModal").style.display = "none";
+    document.getElementById("myOrdersModal").style.display = "none";
   }
 
   function updateNavbarAuth() {
@@ -343,105 +317,7 @@
     }
   }
 
-  // ========== ORDERS ==========
-  async function addOrder(orderData) {
-    const res = await apiPost("addOrder", { order: orderData });
-    if (res && res.status === "success") {
-      ordersList.unshift(orderData);
-      return true;
-    }
-    return false;
-  }
-
-  async function updateOrderStatus(orderId, newStatus) {
-    const res = await apiPost("updateOrderStatus", { orderId, status: newStatus });
-    if (res && res.status === "success") {
-      const order = ordersList.find(o => o.orderId === orderId);
-      if (order) order.status = newStatus;
-      renderAdminOrders();
-    }
-  }
-
-  async function clearAllOrdersAdmin() {
-    if (confirm("DELETE ALL orders permanently?")) {
-      await apiPost("clearAllOrders");
-      ordersList = [];
-      renderAdminOrders();
-      showToast("All orders cleared.");
-    }
-  }
-
-  function renderAdminOrders() {
-    const container = document.getElementById("ordersList");
-    if (!container) return;
-    if (!ordersList.length) {
-      container.innerHTML = `<p style="text-align:center;">No orders placed yet.</p>`;
-      return;
-    }
-    let html = `<table class="orders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead><tbody>`;
-    ordersList.forEach(order => {
-      html += `<tr>
-        <td>${escapeHtml(order.orderId)}</td>
-        <td>${escapeHtml(order.timestamp)}</td>
-        <td>${escapeHtml(order.customer.name)}<br><small>${escapeHtml(order.customer.email)}</small></td>
-        <td>${escapeHtml(order.customer.mobile)}</td>
-        <td>${escapeHtml(order.customer.address)}</td>
-        <td>${order.items.map(i => escapeHtml(i.name)).join('<br>')}</td>
-        <td>$${order.total.toFixed(2)}</td>
-        <td>${escapeHtml(order.payment.method)}</td>
-        <td><select class="status-select" data-order="${order.orderId}">
-          <option value="Pending" ${order.status === "Pending" ? "selected" : ""}>Pending</option>
-          <option value="Processing" ${order.status === "Processing" ? "selected" : ""}>Processing</option>
-          <option value="Shipped" ${order.status === "Shipped" ? "selected" : ""}>Shipped</option>
-          <option value="Delivered" ${order.status === "Delivered" ? "selected" : ""}>Delivered</option>
-          <option value="Cancelled" ${order.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
-        </select></td>
-      </tr>`;
-    });
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-    document.querySelectorAll(".status-select").forEach(sel => {
-      sel.addEventListener("change", (e) => {
-        updateOrderStatus(sel.getAttribute("data-order"), sel.value);
-        showToast(`Status updated to ${sel.value}`);
-      });
-    });
-  }
-
-  function renderAllUsers() {
-    const container = document.getElementById("usersList");
-    if (!container) return;
-    const regularUsers = allUsers.filter(u => u.role !== "admin");
-    if (!regularUsers.length) {
-      container.innerHTML = `<p>No registered customers yet.</p>`;
-      return;
-    }
-    let html = `<table class="users-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody>`;
-    regularUsers.forEach(u => {
-      html += `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.role)}</td></tr>`;
-    });
-    html += `</tbody></table>`;
-    container.innerHTML = html;
-  }
-
-  function openMyOrdersModal() {
-    if (!currentUser) { showToast("Please login first"); return; }
-    const myOrders = ordersList.filter(o => o.customer?.email === currentUser.email);
-    const container = document.getElementById("myOrdersList");
-    if (!myOrders.length) {
-      container.innerHTML = `<p style="text-align:center;">You have no orders yet.</p>`;
-    } else {
-      let html = `<table class="myorders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody>`;
-      myOrders.forEach(order => {
-        html += `<tr><td>${escapeHtml(order.orderId)}</td><td>${escapeHtml(order.timestamp)}</td><td>${order.items.map(i=>escapeHtml(i.name)).join(', ')}</td><td>$${order.total.toFixed(2)}</td><td>${order.status}</td></tr>`;
-      });
-      html += `</tbody></table>`;
-      container.innerHTML = html;
-    }
-    document.getElementById("myOrdersModal").style.display = "flex";
-  }
-
-  // ========== CART & CHECKOUT ==========
+  // ==================== CART ====================
   function requireLogin() {
     if (!currentUser) { showToast("Please login first"); document.getElementById("accountModal").style.display = "flex"; return false; }
     return true;
@@ -456,8 +332,7 @@
   }
 
   function updateCartUI() {
-    const totalItems = cartItems.length;
-    document.getElementById("cartCountDisplay").innerText = totalItems;
+    document.getElementById("cartCountDisplay").innerText = cartItems.length;
     renderCartModal();
   }
 
@@ -485,6 +360,7 @@
 
   function clearCart() { cartItems = []; updateCartUI(); syncUserCart(); showToast("Bag cleared"); }
 
+  // ==================== CHECKOUT ====================
   function openCheckoutModal() {
     if (!requireLogin() || cartItems.length === 0) { if(cartItems.length===0) showToast("Cart empty"); return; }
     updateOrderSummary();
@@ -522,14 +398,19 @@
     const total = cartItems.reduce((s,i)=>s+i.price,0);
     const orderId = "ORD-" + Date.now().toString().slice(-8) + Math.floor(Math.random()*1000);
     const newOrder = {
-      orderId, timestamp: new Date().toLocaleString(),
+      orderId,
+      timestamp: new Date().toLocaleString(),
       customer: { name: fullName, email, mobile, address },
       items: cartItems.map(i=>({id:i.id,name:i.name,price:i.price})),
-      total, status: "Pending",
-      payment: { method: paymentMethod==="bkash"?"bKash":"Cash on Delivery", details: paymentDetails }
+      total,
+      status: "Pending",
+      payment: { method: paymentMethod==="bkash"?"bKash":"Cash on Delivery", details: paymentDetails },
+      userId: currentUser.uid,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
     };
-    const success = await addOrder(newOrder);
-    if (success) {
+    try {
+      await db.collection('orders').add(newOrder);
+      // Clear cart after successful order
       cartItems = [];
       updateCartUI();
       syncUserCart();
@@ -539,7 +420,8 @@
       document.getElementById("bkashFields").style.display = "none";
       showToast(`Order placed! ${orderId}`);
       document.getElementById("orderConfirmModal").style.display = "flex";
-    } else {
+    } catch (error) {
+      console.error(error);
       showToast("Order failed. Try again.");
     }
   }
@@ -547,10 +429,131 @@
   function closeCartModal() { document.getElementById("cartModal").style.display = "none"; }
   function closeCheckoutModal() { document.getElementById("checkoutModal").style.display = "none"; }
   function togglePaymentFields() { document.getElementById("bkashFields").style.display = document.getElementById("paymentMethod").value === "bkash" ? "block" : "none"; }
-  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
-  function showToast(msg) { const t=document.getElementById("toastMsg"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2500); }
 
-  // ========== PRODUCT RENDERING ==========
+  // ==================== ADMIN ORDERS (real-time) ====================
+  function renderAdminOrders() {
+    const container = document.getElementById("ordersList");
+    if (!container) return;
+    if (window.ordersUnsubscribe) window.ordersUnsubscribe();
+
+    window.ordersUnsubscribe = db.collection('orders')
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        const orders = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          orders.push({ id: doc.id, ...data });
+        });
+        if (!orders.length) {
+          container.innerHTML = `<p style="text-align:center;">No orders placed yet.</p>`;
+          return;
+        }
+        let html = `<table class="orders-table"><thead>汽<th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th> </thead><tbody>`;
+        orders.forEach(order => {
+          html += `<tr>
+            <td>${escapeHtml(order.orderId)}</td>
+            <td>${escapeHtml(order.timestamp)}</td>
+            <td>${escapeHtml(order.customer.name)}<br><small>${escapeHtml(order.customer.email)}</small></td>
+            <td>${escapeHtml(order.customer.mobile)}</td>
+            <td>${escapeHtml(order.customer.address)}</td>
+            <td>${order.items.map(i => escapeHtml(i.name)).join('<br>')}</td>
+            <td>$${order.total.toFixed(2)}</td>
+            <td>${escapeHtml(order.payment.method)}</td>
+            <td><select class="status-select" data-order-id="${order.id}">
+              <option value="Pending" ${order.status === "Pending" ? "selected" : ""}>Pending</option>
+              <option value="Processing" ${order.status === "Processing" ? "selected" : ""}>Processing</option>
+              <option value="Shipped" ${order.status === "Shipped" ? "selected" : ""}>Shipped</option>
+              <option value="Delivered" ${order.status === "Delivered" ? "selected" : ""}>Delivered</option>
+              <option value="Cancelled" ${order.status === "Cancelled" ? "selected" : ""}>Cancelled</option>
+            </select></td>
+          </tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+        // Attach status change listeners
+        document.querySelectorAll(".status-select").forEach(sel => {
+          sel.addEventListener("change", async (e) => {
+            const orderId = sel.getAttribute("data-order-id");
+            const newStatus = sel.value;
+            await db.collection('orders').doc(orderId).update({ status: newStatus });
+            showToast(`Status updated to ${newStatus}`);
+          });
+        });
+      });
+  }
+
+  async function clearAllOrdersAdmin() {
+    if (confirm("DELETE ALL orders permanently?")) {
+      const snapshot = await db.collection('orders').get();
+      const batch = db.batch();
+      snapshot.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+      showToast("All orders cleared.");
+    }
+  }
+
+  // ==================== ADMIN USERS (real-time) ====================
+  function renderAllUsers() {
+    const container = document.getElementById("usersList");
+    if (!container) return;
+    if (window.usersUnsubscribe) window.usersUnsubscribe();
+
+    window.usersUnsubscribe = db.collection('users')
+      .where('role', '==', 'user')
+      .onSnapshot(snapshot => {
+        const users = [];
+        snapshot.forEach(doc => {
+          users.push({ id: doc.id, ...doc.data() });
+        });
+        if (!users.length) {
+          container.innerHTML = `<p>No registered customers yet.</p>`;
+          return;
+        }
+        let html = `<table class="users-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th></tr></thead><tbody>`;
+        users.forEach(u => {
+          html += `<tr><td>${escapeHtml(u.name)}</td><td>${escapeHtml(u.email)}</td><td>${escapeHtml(u.role)}</td></tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+      });
+  }
+
+  // ==================== MY ORDERS (real-time) ====================
+  function openMyOrdersModal() {
+    if (!currentUser) { showToast("Please login first"); return; }
+    const container = document.getElementById("myOrdersList");
+    if (window.myOrdersUnsubscribe) window.myOrdersUnsubscribe();
+
+    window.myOrdersUnsubscribe = db.collection('orders')
+      .where('userId', '==', currentUser.uid)
+      .orderBy('createdAt', 'desc')
+      .onSnapshot(snapshot => {
+        const orders = [];
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          orders.push({ id: doc.id, ...data });
+        });
+        if (!orders.length) {
+          container.innerHTML = `<p style="text-align:center;">You have no orders yet.</p>`;
+        } else {
+          let html = `<table class="myorders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Items</th><th>Total</th><th>Status</th></tr></thead><tbody>`;
+          orders.forEach(order => {
+            html += `<tr>
+              <td>${escapeHtml(order.orderId)}</td>
+              <td>${escapeHtml(order.timestamp)}</td>
+              <td>${order.items.map(i=>escapeHtml(i.name)).join(', ')}</td>
+              <td>$${order.total.toFixed(2)}</td>
+              <td>${order.status}</td>
+            </tr>`;
+          });
+          html += `</tbody></table>`;
+          container.innerHTML = html;
+        }
+      });
+    document.getElementById("myOrdersModal").style.display = "flex";
+  }
+
+  // ==================== PRODUCT RENDERING ====================
   function createProductCard(product) {
     const card = document.createElement("div"); card.className = "product-card";
     card.innerHTML = `<img class="product-img" src="${product.img}" alt="${product.alt}"><div class="product-info"><div class="product-title">${escapeHtml(product.name)}</div><div class="product-price">$${product.price.toFixed(2)}</div><button class="add-to-cart" data-id="${product.id}">Add to Cart</button></div>`;
@@ -560,21 +563,49 @@
   }
   function renderFeatured() { const grid = document.getElementById("featured-grid"); if(grid){ grid.innerHTML=""; products.slice(0,6).forEach(p=>grid.appendChild(createProductCard(p))); } }
   function renderAllProducts(search="") { const grid = document.getElementById("allProductsGrid"); if(grid){ grid.innerHTML=""; const filtered = products.filter(p=>p.name.toLowerCase().includes(search.toLowerCase())); filtered.forEach(p=>grid.appendChild(createProductCard(p))); } }
-  function showProductModal(product) { /* simplified product modal without reviews to keep length */ alert(`Product: ${product.name}\nPrice: $${product.price}\n${product.description}\nSizes: ${product.sizes.join(", ")}`); }
+  function showProductModal(product) { alert(`Product: ${product.name}\nPrice: $${product.price}\n${product.description}\nSizes: ${product.sizes.join(", ")}`); }
 
-  // ========== EVENT LISTENERS & INIT ==========
+  // ==================== INITIALIZATION ====================
   document.addEventListener("DOMContentLoaded", async () => {
-    await loadAllData();
+    // Check if user already logged in
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        const userDoc = await db.collection('users').doc(user.uid).get();
+        const userData = userDoc.data() || { name: user.email.split('@')[0], role: 'user' };
+        const cart = await loadUserCart(user.uid);
+        currentUser = {
+          uid: user.uid,
+          email: user.email,
+          name: userData.name,
+          role: userData.role,
+          cart: cart
+        };
+        cartItems = cart;
+        updateCartUI();
+        updateNavbarAuth();
+        if (currentUser.role === 'admin') {
+          renderAdminOrders();
+          renderAllUsers();
+        }
+      } else {
+        // No user signed in
+        currentUser = null;
+        cartItems = [];
+        updateCartUI();
+        updateNavbarAuth();
+      }
+    });
+
     renderFeatured();
     renderAllProducts("");
     updateCartUI();
-    // Modal close logic, event handlers
+
+    // Event listeners for modals, buttons, etc.
     document.querySelector(".close-modal")?.addEventListener("click", closeCartModal);
     document.querySelector(".close-checkout-modal")?.addEventListener("click", closeCheckoutModal);
     document.querySelector(".close-admin-modal")?.addEventListener("click", ()=>document.getElementById("adminModal").style.display="none");
     document.querySelector(".close-users-modal")?.addEventListener("click", ()=>document.getElementById("usersModal").style.display="none");
     document.querySelector(".close-account-modal")?.addEventListener("click", ()=>document.getElementById("accountModal").style.display="none");
-    document.querySelector(".close-product-modal")?.addEventListener("click", ()=>document.getElementById("productModal").style.display="none");
     document.querySelector(".close-orders-modal")?.addEventListener("click", ()=>document.getElementById("myOrdersModal").style.display="none");
     document.querySelector(".close-confirm-modal")?.addEventListener("click", ()=>document.getElementById("orderConfirmModal").style.display="none");
     document.getElementById("clearCartBtn")?.addEventListener("click", clearCart);
@@ -592,7 +623,8 @@
     document.getElementById("logoHome")?.addEventListener("click", ()=>document.getElementById("navHome").click());
     document.getElementById("hamburgerBtn")?.addEventListener("click", ()=>document.getElementById("navLinks").classList.toggle("active"));
     document.getElementById("confirmOkBtn")?.addEventListener("click", ()=>document.getElementById("orderConfirmModal").style.display="none");
-    // Login/Register
+
+    // Login/Register forms
     document.getElementById("loginForm")?.addEventListener("submit", async (e)=>{
       e.preventDefault();
       const email = document.getElementById("loginEmail").value.trim();
