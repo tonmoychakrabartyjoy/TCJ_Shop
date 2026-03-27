@@ -7,12 +7,12 @@
   <!-- Google Fonts & Font Awesome -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <!-- Firebase SDKs (compat versions) -->
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js"></script>
+  <!-- Firebase SDKs (compat versions – fixes the "firebase is not defined" error) -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js"></script>
   <style>
-    /* ========== STYLES (same as before, no changes) ========== */
+    /* ========== STYLES (unchanged, same as before) ========== */
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background-color: #FEFCF8; color: #2A2418; line-height: 1.5; scroll-behavior: smooth; }
     h1, h2, h3, .logo, .hero-title, .section-title { font-family: 'Playfair Display', serif; font-weight: 500; }
@@ -161,7 +161,7 @@
 
 <script>
   // ==================== FIREBASE CONFIGURATION ====================
-  // 🔁 REPLACE WITH YOUR FIREBASE PROJECT CONFIG (already pasted below)
+  // (Replace with your actual Firebase config)
   const firebaseConfig = {
     apiKey: "AIzaSyAP6gPp5F0wjOHRrjoEZSI0orgPvxStfKQ",
     authDomain: "tcjshop-81a62.firebaseapp.com",
@@ -192,7 +192,7 @@
   ];
 
   // ==================== GLOBAL STATE ====================
-  let currentUser = null;        // { uid, email, name, role, cart }
+  let currentUser = null;
   let cartItems = [];
 
   // ==================== HELPER FUNCTIONS ====================
@@ -204,11 +204,10 @@
     try {
       const userCredential = await auth.createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
-      // Store user profile in Firestore
       await db.collection('users').doc(user.uid).set({
         name: name,
         email: email,
-        role: 'user',   // default role, you can set an admin manually in Firestore
+        role: 'user',
         createdAt: firebase.firestore.FieldValue.serverTimestamp()
       });
       return { success: true, user: { uid: user.uid, email, name, role: 'user', cart: [] } };
@@ -222,10 +221,6 @@
       const userCredential = await auth.signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
       const userDoc = await db.collection('users').doc(user.uid).get();
-      if (!userDoc.exists) {
-        // Fallback: create profile if missing (shouldn't happen)
-        await db.collection('users').doc(user.uid).set({ name: email.split('@')[0], email, role: 'user' });
-      }
       const userData = userDoc.data() || { name: email.split('@')[0], role: 'user' };
       return {
         success: true,
@@ -234,7 +229,7 @@
           email: user.email,
           name: userData.name,
           role: userData.role,
-          cart: []   // will load cart separately
+          cart: []
         }
       };
     } catch (error) {
@@ -244,10 +239,7 @@
 
   async function loadUserCart(uid) {
     const cartDoc = await db.collection('carts').doc(uid).get();
-    if (cartDoc.exists) {
-      return cartDoc.data().items || [];
-    }
-    return [];
+    return cartDoc.exists ? cartDoc.data().items || [] : [];
   }
 
   async function syncUserCart() {
@@ -260,7 +252,6 @@
 
   function afterLogin(user) {
     currentUser = user;
-    // Load cart from Firestore
     loadUserCart(currentUser.uid).then(cart => {
       cartItems = cart;
       updateCartUI();
@@ -268,8 +259,7 @@
     });
     showToast(`Welcome ${currentUser.name || currentUser.email}!`);
     if (currentUser.role === 'admin') {
-      // Admin panels will be set up when needed; real-time listeners will be attached
-      renderAdminOrders();  // initial load, listener inside
+      renderAdminOrders();
       renderAllUsers();
     }
   }
@@ -283,11 +273,10 @@
     updateCartUI();
     updateNavbarAuth();
     showToast("Logged out.");
-    // Close any open modals
-    document.getElementById("accountModal").style.display = "none";
-    document.getElementById("adminModal").style.display = "none";
-    document.getElementById("usersModal").style.display = "none";
-    document.getElementById("myOrdersModal").style.display = "none";
+    ["accountModal","adminModal","usersModal","myOrdersModal"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
   }
 
   function updateNavbarAuth() {
@@ -410,7 +399,6 @@
     };
     try {
       await db.collection('orders').add(newOrder);
-      // Clear cart after successful order
       cartItems = [];
       updateCartUI();
       syncUserCart();
@@ -448,7 +436,7 @@
           container.innerHTML = `<p style="text-align:center;">No orders placed yet.</p>`;
           return;
         }
-        let html = `<table class="orders-table"><thead>汽<th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th> </thead><tbody>`;
+        let html = `<table class="orders-table"><thead><tr><th>Order ID</th><th>Date</th><th>Customer</th><th>Mobile</th><th>Address</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th></tr></thead><tbody>`;
         orders.forEach(order => {
           html += `<tr>
             <td>${escapeHtml(order.orderId)}</td>
@@ -470,7 +458,6 @@
         });
         html += `</tbody></table>`;
         container.innerHTML = html;
-        // Attach status change listeners
         document.querySelectorAll(".status-select").forEach(sel => {
           sel.addEventListener("change", async (e) => {
             const orderId = sel.getAttribute("data-order-id");
@@ -567,7 +554,7 @@
 
   // ==================== INITIALIZATION ====================
   document.addEventListener("DOMContentLoaded", async () => {
-    // Check if user already logged in
+    // Set up auth state listener
     auth.onAuthStateChanged(async (user) => {
       if (user) {
         const userDoc = await db.collection('users').doc(user.uid).get();
@@ -588,7 +575,6 @@
           renderAllUsers();
         }
       } else {
-        // No user signed in
         currentUser = null;
         cartItems = [];
         updateCartUI();
@@ -600,7 +586,7 @@
     renderAllProducts("");
     updateCartUI();
 
-    // Event listeners for modals, buttons, etc.
+    // Event listeners
     document.querySelector(".close-modal")?.addEventListener("click", closeCartModal);
     document.querySelector(".close-checkout-modal")?.addEventListener("click", closeCheckoutModal);
     document.querySelector(".close-admin-modal")?.addEventListener("click", ()=>document.getElementById("adminModal").style.display="none");
