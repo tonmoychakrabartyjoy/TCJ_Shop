@@ -142,7 +142,10 @@
     { id: 8, name: "Artisan Leather Belt", price: 89, img: "https://images.unsplash.com/photo-1620799140408-edc6dcb6d633?w=400&h=500&fit=crop", alt: "leather belt", description: "Hand-stitched genuine leather belt.", sizes: ["S","M","L"] },
     { id: 9, name: "Shirt", price: 159, img: "https://photos.google.com/photo/AF1QipPgB7XTpS8pFAusfBRapBCEvEKka017cQ-gVu1t", alt: "Shirt", description: "Elegant pleated Shirt.", sizes: ["XS","S","M","L"] },
     { id: 10, name: "Oversized Cashmere Sweater", price: 279, img: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=500&fit=crop", alt: "cashmere sweater", description: "Cozy oversized cashmere sweater.", sizes: ["S","M","L","XL"] }
+  ],
+{ id: 11, name: "Oversized Cashmere Sweater", price: 279, img: "https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&h=500&fit=crop", alt: "cashmere sweater", description: "Cozy oversized cashmere sweater.", sizes: ["S","M","L","XL"] }
   ];
+
   let currentUser = null;
   let cartItems = [];
   function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){ if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
