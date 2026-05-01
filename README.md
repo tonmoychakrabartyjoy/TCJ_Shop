@@ -84,21 +84,12 @@ Open **index.html** in your browser 🌐
 ## 📸 Website Preview
 
 
-
-Example:
-
-```html id="k91djg"
-<p align="center">
-  <img src="images/preview.png" width="700"/>
-</p>
-```
-
 ---
 
 ## 📬 Contact
 
 * 📧 Email: [tonmoy.chakrabarty.joy01@gmail.com](mailto:tonmoy.chakrabarty.joy01@gmail.com)
-* 💼 LinkedIn: your-linkedin-link
+* 💼 LinkedIn: [**Tonmoy Chakrabarty joy**](https://www.linkedin.com/in/tonmoy-chakrabarty-joy-a183b83b2/)
 * 🐙 GitHub: https://github.com/tonmoychakrabartyjoy
 
 ---
